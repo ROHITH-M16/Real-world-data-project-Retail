@@ -1,0 +1,190 @@
+import json
+import os
+
+notebook_content = {
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Retail Sales Analytics & Prediction System\n",
+    "## Exploratory Data Analysis, Customer Segmentation (RFM), and Sales Forecasting\n",
+    "This notebook demonstrates the end-to-end data science workflow for analyzing retail sales data."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import sys\n",
+    "import os\n",
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "\n",
+    "# Add src to python path\n",
+    "sys.path.append(os.path.abspath('../src'))\n",
+    "from data_generator import generate_retail_data\n",
+    "from data_cleaner import clean_retail_data\n",
+    "from database import RetailDatabase\n",
+    "from eda import plot_sales_trend, plot_category_revenue, plot_top_products\n",
+    "from segmentation import calculate_rfm, train_rfm_kmeans, plot_rfm_3d\n",
+    "from predictor import prepare_time_series_dataset, train_and_evaluate_models, forecast_future_sales\n",
+    "from insights import generate_business_insights\n",
+    "\n",
+    "print('All dependencies successfully imported!')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 1. Data Generation & Loading"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Generate raw dataset if not present\n",
+    "raw_df = generate_retail_data(n_samples=3000)\n",
+    "print('Raw Data Shape:', raw_df.shape)\n",
+    "raw_df.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 2. Data Cleaning & Validation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "cleaned_df, cleaning_summary = clean_retail_data(raw_df)\n",
+    "print('Data Cleaning Hygiene Summary:', cleaning_summary)\n",
+    "cleaned_df.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 3. Exploratory Data Analysis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_sales_trend(cleaned_df, freq='M')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_category_revenue(cleaned_df)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 4. RFM Customer Segmentation & K-Means"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "rfm_df = calculate_rfm(cleaned_df)\n",
+    "rfm_segmented, profile, kmeans_model = train_rfm_kmeans(rfm_df, n_clusters=4)\n",
+    "print('Segment Customer Counts:')\n",
+    "print(rfm_segmented['Customer_Segment'].value_counts())\n",
+    "rfm_segmented.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 5. Sales Prediction & ML Model Training"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ts_df = prepare_time_series_dataset(cleaned_df)\n",
+    "eval_results = train_and_evaluate_models(ts_df)\n",
+    "print('Model Evaluation Metrics:')\n",
+    "eval_results['metrics_df']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Future 30-Day Sales Forecast\n",
+    "forecast_df = forecast_future_sales(ts_df, eval_results['best_model'], eval_results['feature_cols'], forecast_days=30)\n",
+    "forecast_df.head(10)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 6. Automated Business Insights"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "insights_data = generate_business_insights(cleaned_df, rfm_segmented)\n",
+    "print('--- KEY INSIGHTS ---')\n",
+    "for item in insights_data['insights']:\n",
+    "    print(f\"{item['icon']} {item['title']}: {item['text']}\")\n",
+    "print('\\n--- ACTIONABLE RECOMMENDATIONS ---')\n",
+    "for item in insights_data['recommendations']:\n",
+    "    print(f\"{item['icon']} {item['title']} [{item['area']}]: {item['action']}\")"
+   ]
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
+
+nb_dir = os.path.join(os.path.dirname(__file__), "..", "notebooks")
+os.makedirs(nb_dir, exist_ok=True)
+nb_path = os.path.join(nb_dir, "eda_and_modeling.ipynb")
+with open(nb_path, "w", encoding="utf-8") as f:
+    json.dump(notebook_content, f, indent=2)
+print(f"Jupyter Notebook successfully created at: {nb_path}")
